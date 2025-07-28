@@ -9,6 +9,11 @@
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
+        html, body, #root { /* 確保 html, body, 和 root div 填滿視窗高度 */
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
         body {
             font-family: 'Inter', sans-serif;
         }
@@ -521,7 +526,7 @@
                                         />
                                         <button
                                             onClick={startListening}
-                                            className={`py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse-listen' : 'bg-green-600 hover:bg-green-700 text-white'} min-w-[100px]`}
+                                            className={`py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse-listen' : 'bg-green-600 hover:bg-green-700 text-white'} flex-shrink-0`}
                                             disabled={isLoading || !recognitionRef.current}
                                             title={isListening ? "正在聆聽..." : "說出您的訊息"}
                                         >
@@ -534,14 +539,14 @@
                                         </button>
                                         <button
                                             onClick={sendMessage}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex-shrink-0"
                                             disabled={isLoading || isListening}
                                         >
                                             傳送
                                         </button>
                                         <button
                                             onClick={requestHint}
-                                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex-shrink-0"
                                             disabled={isLoading || isListening}
                                         >
                                             提示
