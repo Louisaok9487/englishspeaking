@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 聊天練習</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    <!-- React and ReactDOM CDNs -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX transformation in browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Main App Component
+        const App = () => {
+            // State variables for managing the application's flow and data
+            const [selectedTopic, setSelectedTopic] = React.useState(null); // Stores the currently selected topic
+            const [conversation, setConversation] = React.useState([]); // Stores the history of the conversation (AI and user messages)
+            const [userInput, setUserInput] = React.useState(''); // Stores the user's current input in the text field
+            const [isLoading, setIsLoading] = React.useState(false); // Indicates if an AI response is being loaded
+            const [feedback, setFeedback] = React.useState(null); // Stores the final feedback and score from the AI
+            const [turnCount, setTurnCount] = React.useState(0); // Tracks the number of turns in the conversation
+            const [showHint, setShowHint] = React.useState(false); // Controls the visibility of the hint message
+            const [hintText, setHintText] = React.useState(''); // Stores the hint text
+            const [isListening, setIsListening] = React.useState(false); // Indicates if speech recognition is active
+            const [speechError, setSpeechError] = React.useState(''); // Stores any speech recognition errors
+
+            const conversationEndRef = React.useRef(null); // Ref to scroll to the end of the conversation
+            const recognitionRef = React.useRef(null); // Ref for SpeechRecognition object
+
+            // Pre-defined topics for the chat
+            const topics = [
+                'Shopping', 'Airport', 'Restaurant', 'Hotel Check-in',
+                'Asking for Directions', 'Job Interview', 'Doctor\'s Appointment',
+                'Making Small Talk', 'Ordering Coffee', 'Discussing Hobbies'
+            ];
+
+            // Effect to scroll to the bottom of the conversation whenever it updates
+            React.useEffect(() => {
+                if (conversationEndRef.current) {
+                    conversationEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, [conversation]);
+
+            // Initialize SpeechRecognition and SpeechSynthesis
+            React.useEffect(() => {
+                // Check for Web Speech API compatibility
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SpeechRecognition) {
+                    recognitionRef.current = new SpeechRecognition();
+                    recognitionRef.current.continuous = false; // Stop after a single utterance
+                    recognitionRef.current.interimResults = false; // Only return final results
+
+                    recognitionRef.current.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        setUserInput(transcript); // Set transcribed text to input field
+                        setIsListening(false); // Stop listening indicator
+                        setSpeechError(''); // Clear any previous speech errors
+                    };
+
+                    recognitionRef.current.onerror = (event) => {
+                        console.error('Speech recognition error:', event.error);
+                        setSpeechError(`語音辨識錯誤：${event.error}`); // Translated error message
+                        setIsListening(false);
+                    };
+
+                    recognitionRef.current.onend = () => {
+                        setIsListening(false); // Ensure listening state is false when recognition ends
+                    };
+                } else {
+                    setSpeechError('此瀏覽器不支援語音辨識。'); // Translated error message
+                    console.warn('Web Speech API (SpeechRecognition) not supported in this browser.');
+                }
+
+                // Clean up recognition object on component unmount
+                return () => {
+                    if (recognitionRef.current) {
+                        recognitionRef.current.stop();
+                    }
+                };
+            }, []);
+
+            // Function to speak text using SpeechSynthesis
+            const speakText = (text) => {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'en-GB'; // Use British English accent
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    console.warn('Text-to-speech not supported in this browser.');
+                }
+            };
+
+            // Function to call the Gemini API
+            const callGeminiAPI = async (prompt, schema = null) => {
+                setIsLoading(true); // Set loading state to true
+                let chatHistory = [];
+                // Add existing conversation to chat history for context
+                conversation.forEach(msg => {
+                    chatHistory.push({ role: msg.sender === 'AI' ? 'model' : 'user', parts: [{ text: msg.text }] });
+                });
+                // Add the current prompt from the user/system
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = { contents: chatHistory };
+                if (schema) {
+                    payload.generationConfig = {
+                        responseMimeType: "application/json",
+                        responseSchema: schema
+                    };
+                }
+
+                const apiKey = ""; // API key is provided by Canvas runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        setIsLoading(false); // Set loading state to false
+                        return schema ? JSON.parse(text) : text; // Parse JSON if schema was used
+                    } else {
+                        console.error('Unexpected API response structure:', result);
+                        setIsLoading(false);
+                        return '錯誤：無法從AI獲得回應。'; // Translated error message
+                    }
+                } catch (error) {
+                    console.error('Error calling Gemini API:', error);
+                    setIsLoading(false);
+                    return '錯誤：無法連接到AI。'; // Translated error message
+                }
+            };
+
+            // Function to start a new conversation with the selected topic
+            const startConversation = async (topic) => {
+                setSelectedTopic(topic);
+                setConversation([]);
+                setFeedback(null);
+                setTurnCount(0);
+                setShowHint(false);
+                setHintText('');
+                setSpeechError(''); // Clear speech errors on new conversation
+
+                // Request AI to start conversation with a direct question in the scenario
+                let prompt;
+                switch (topic) {
+                    case 'Restaurant':
+                        prompt = `You are a server in a restaurant. Start the conversation by asking a direct question to the customer, like "What can I get for you today, sir/madam?" or "Are you ready to order?"`;
+                        break;
+                    case 'Airport':
+                        prompt = `You are an airport check-in agent. Start the conversation by asking a direct question about the passenger's flight, like "What is your flight today?" or "Do you have your passport and ticket ready?"`;
+                        break;
+                    case 'Shopping':
+                        prompt = `You are a shop assistant. Start the conversation by asking a direct question to the customer, like "Can I help you find anything today?" or "Are you looking for something specific?"`;
+                        break;
+                    case 'Hotel Check-in':
+                        prompt = `You are a hotel receptionist. Start the conversation by asking a direct question for check-in, like "Welcome to our hotel. Do you have a reservation?" or "May I have your name, please?"`;
+                        break;
+                    case 'Asking for Directions':
+                        prompt = `You are a person being asked for directions. Start the conversation by acknowledging the user's need, like "Hello, can I help you find something?" or "Are you lost?"`;
+                        break;
+                    case 'Job Interview':
+                        prompt = `You are an interviewer. Start the conversation with a common opening interview question, like "Tell me a little bit about yourself." or "Why are you interested in this position?"`;
+                        break;
+                    case 'Doctor\'s Appointment':
+                        prompt = `You are a doctor or a nurse. Start the conversation by asking about the patient's reason for visit, like "What brings you in today?" or "How are you feeling?"`;
+                        break;
+                    case 'Making Small Talk':
+                        prompt = `You are meeting someone new. Start the conversation with a casual, open-ended question for small talk, like "How's your day going so far?" or "Lovely weather, isn't it?"`;
+                        break;
+                    case 'Ordering Coffee':
+                        prompt = `You are a barista. Start the conversation by asking what the customer would like to order, like "What can I get for you?" or "Ready to order?"`;
+                        break;
+                    case 'Discussing Hobbies':
+                        prompt = `You are meeting someone who shares a common interest. Start the conversation by asking about their hobbies, like "So, what do you like to do in your free time?" or "Any interesting hobbies you've picked up lately?"`;
+                        break;
+                    default:
+                        prompt = `Start an engaging conversation about "${topic}". The AI should speak first with an inviting and natural opening line, setting a vivid scene for a conversation practice exercise. Keep the response concise but interesting, perhaps one or two sentences.`;
+                }
+
+                const aiResponse = await callGeminiAPI(prompt);
+                setConversation([{ sender: 'AI', text: aiResponse }]);
+                speakText(aiResponse); // Speak the AI's first response
+                setTurnCount(1); // AI's first turn
+            };
+
+            // Function to handle user sending a message (either typed or spoken)
+            const sendMessage = async () => {
+                if (!userInput.trim() || isLoading) return; // Prevent sending empty messages or while loading
+
+                const newUserMessage = { sender: 'User', text: userInput };
+                const updatedConversation = [...conversation, newUserMessage];
+                setConversation(updatedConversation);
+                setUserInput(''); // Clear user input field
+                setShowHint(false); // Hide hint after user sends a message
+
+                // Check if conversation should end
+                if (turnCount >= 10) {
+                    // Conclude conversation and get feedback
+                    await getConversationFeedback(updatedConversation);
+                } else {
+                    // Get AI's response for the next turn, keeping it engaging but concise
+                    const aiPrompt = `Given the conversation history: ${updatedConversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nUser just said: "${userInput}". What should the AI say next to continue the conversation naturally and engagingly? Keep the response concise, perhaps one or two sentences with a follow-up question.`;
+                    const aiResponse = await callGeminiAPI(aiPrompt);
+                    setConversation(prev => {
+                        const newConv = [...prev, { sender: 'AI', text: aiResponse }];
+                        speakText(aiResponse); // Speak the AI's response
+                        return newConv;
+                    });
+                    setTurnCount(prev => prev + 1);
+                }
+            };
+
+            // Function to request a hint from the AI
+            const requestHint = async () => {
+                if (isLoading) return;
+                const prompt = `Given the current conversation: ${conversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nI need a hint for what to say next as the user. Provide a very short, concise suggestion or question I could ask.`;
+                const hint = await callGeminiAPI(prompt);
+                setHintText(hint);
+                setShowHint(true);
+            };
+
+            // Function to start speech recognition
+            const startListening = () => {
+                if (isListening) { // Prevent starting if already listening
+                    console.warn('Speech recognition already active.');
+                    return;
+                }
+                if (recognitionRef.current) {
+                    setSpeechError(''); // Clear previous errors
+                    recognitionRef.current.stop(); // Stop any previous recognition before starting a new one
+                    setIsListening(true);
+                    recognitionRef.current.start();
+                } else {
+                    setSpeechError('語音辨識不可用。'); // Translated error message
+                }
+            };
+
+            // Function to get final feedback and score from the AI
+            const getConversationFeedback = async (finalConversation) => {
+                const conversationText = finalConversation.map(msg => `${msg.sender}: ${msg.text}`).join('\n');
+                const feedbackPrompt = `The following is a conversation between a user and an AI about the topic "${selectedTopic}".
+                Conversation:\n${conversationText}\n\n
+                Please provide feedback on the user's choice of words, grammar, and overall usage.
+                Then, give a score from 0 to 100 based on their performance.
+                Structure your response as a JSON object with 'score' (number) and 'recommendations' (string) fields.
+                Example: {"score": 85, "recommendations": "Good vocabulary, but work on verb tenses. Try to use more varied sentence structures."}`;
+
+                const feedbackSchema = {
+                    type: "OBJECT",
+                    properties: {
+                        "score": { "type": "NUMBER" },
+                        "recommendations": { "type": "STRING" }
+                    },
+                    propertyOrdering: ["score", "recommendations"]
+                };
+
+                const aiFeedback = await callGeminiAPI(feedbackPrompt, feedbackSchema);
+                setFeedback(aiFeedback);
+                setSelectedTopic(null); // Reset topic to show topic selection again
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center p-4 font-inter">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col md:flex-row overflow-hidden">
+                        {/* Left Panel: Topic Selection or Back Button */}
+                        <div className="w-full md:w-1/3 bg-blue-600 text-white p-6 flex flex-col justify-between rounded-t-xl md:rounded-l-xl md:rounded-tr-none">
+                            {selectedTopic ? (
+                                <button
+                                    onClick={() => setSelectedTopic(null)}
+                                    className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                >
+                                    ← 返回主題
+                                </button>
+                            ) : (
+                                <div>
+                                    <h2 className="text-3xl font-bold mb-6 text-center">選擇一個主題</h2>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {topics.map(topic => (
+                                            <button
+                                                key={topic}
+                                                onClick={() => startConversation(topic)}
+                                                className="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-4 px-2 text-sm rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 text-center whitespace-normal flex items-center justify-center min-h-16"
+                                            >
+                                                {topic}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Panel: Chat Area or Feedback */}
+                        <div className="w-full md:w-2/3 p-6 flex flex-col">
+                            {selectedTopic && !feedback ? (
+                                <>
+                                    <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
+                                        正在聊天主題：<span className="text-blue-600">{selectedTopic}</span> (回合：{turnCount}/10)
+                                    </h2>
+                                    <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50 shadow-inner">
+                                        {conversation.map((msg, index) => (
+                                            <div
+                                                key={index}
+                                                className={`mb-3 p-3 rounded-lg max-w-[80%] ${msg.sender === 'User' ? 'bg-blue-100 text-blue-800 ml-auto' : 'bg-gray-200 text-gray-800 mr-auto'}`}
+                                            >
+                                                <p className="font-semibold">{msg.sender === 'AI' ? 'AI' : '使用者'}:</p> {/* Keep sender name in English */}
+                                                <p>{msg.text}</p>
+                                            </div>
+                                        ))}
+                                        {isLoading && (
+                                            <div className="flex justify-center items-center py-4">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                                <span className="ml-2 text-gray-600">AI正在思考...</span>
+                                            </div>
+                                        )}
+                                        <div ref={conversationEndRef} /> {/* Scroll target */}
+                                    </div>
+
+                                    {showHint && hintText && (
+                                        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg relative mb-4">
+                                            <p className="font-bold">提示：</p>
+                                            <p>{hintText}</p>
+                                        </div>
+                                    )}
+
+                                    {speechError && (
+                                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4">
+                                            <p className="font-bold">錯誤：</p>
+                                            <p>{speechError}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            value={userInput}
+                                            onChange={(e) => setUserInput(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                                            placeholder={isListening ? "正在聆聽..." : "輸入您的訊息或說話..."}
+                                            className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            disabled={isLoading || isListening}
+                                        />
+                                        <button
+                                            onClick={startListening}
+                                            className={`py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                                            disabled={isLoading || !recognitionRef.current}
+                                            title={isListening ? "正在聆聽..." : "說出您的訊息"}
+                                        >
+                                            {isListening ? (
+                                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0 5 5 0 01-5 5v1.085l3.931 3.931a1 1 0 001.414-1.414L12 14.085V13a1 1 0 10-2 0v1.085l-1.931 1.931a1 1 0 001.414 1.414L10 14.085V15a1 1 0 002 0v-.915z" clipRule="evenodd"></path></svg>
+                                            ) : (
+                                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0 5 5 0 01-5 5v1.085l3.931 3.931a1 1 0 001.414-1.414L12 14.085V13a1 1 0 10-2 0v1.085l-1.931 1.931a1 1 0 001.414 1.414L10 14.085V15a1 1 0 002 0v-.915z" clipRule="evenodd"></path></svg>
+                                            )}
+                                            {isListening ? '正在聆聽...' : '說話'}
+                                        </button>
+                                        <button
+                                            onClick={sendMessage}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                            disabled={isLoading || isListening}
+                                        >
+                                            傳送
+                                        </button>
+                                        <button
+                                            onClick={requestHint}
+                                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                            disabled={isLoading || isListening}
+                                        >
+                                            提示
+                                        </button>
+                                    </div>
+                                </>
+                            ) : feedback ? (
+                                <div className="flex flex-col items-center justify-center h-full text-center">
+                                    <h2 className="text-3xl font-bold text-gray-800 mb-4">對話結束！</h2>
+                                    <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg shadow-lg mb-6 w-full max-w-md">
+                                        <p className="text-xl font-bold mb-2">您的分數：<span className="text-green-800 text-4xl">{feedback.score}/100</span></p>
+                                        <p className="text-lg font-semibold mb-2">建議：</p>
+                                        <p className="text-md">{feedback.recommendations}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedTopic(null);
+                                            setFeedback(null);
+                                            setConversation([]);
+                                            setTurnCount(0);
+                                        }}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                    >
+                                        開始新對話
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-center">
+                                    <h1 className="text-4xl font-extrabold text-gray-800 mb-4">歡迎來到AI聊天練習！</h1>
+                                    <p className="text-lg text-gray-600 mb-8">請從左側面板選擇一個主題，開始與AI對話。</p>
+                                    <p className="text-md text-gray-500">練習您的英語，獲得提示，並接收關於您語言技能的回饋。</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the App component to the root div
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
