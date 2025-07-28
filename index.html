@@ -514,19 +514,20 @@
                                         </div>
                                     )}
 
-                                    <div className="flex gap-2 items-center pr-6 flex-shrink-0"> {/* Added flex-shrink-0 */}
+                                    {/* Responsive button layout for phone screens */}
+                                    <div className="flex flex-col sm:flex-row gap-2 items-center px-4 md:pr-6 flex-shrink-0">
                                         <input
                                             type="text"
                                             value={userInput}
                                             onChange={(e) => setUserInput(e.target.value)}
                                             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                                             placeholder={isListening ? "正在聆聽..." : "輸入您的訊息或說話..."}
-                                            className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto" /* Added w-full sm:w-auto */
                                             disabled={isLoading || isListening}
                                         />
                                         <button
                                             onClick={startListening}
-                                            className={`py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse-listen' : 'bg-green-600 hover:bg-green-700 text-white'} flex-shrink-0`}
+                                            className={`py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse-listen' : 'bg-green-600 hover:bg-green-700 text-white'} w-full sm:w-auto flex-shrink-0`} /* Added w-full sm:w-auto */
                                             disabled={isLoading || !recognitionRef.current}
                                             title={isListening ? "正在聆聽..." : "說出您的訊息"}
                                         >
@@ -539,14 +540,14 @@
                                         </button>
                                         <button
                                             onClick={sendMessage}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex-shrink-0"
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 w-full sm:w-auto flex-shrink-0" /* Added w-full sm:w-auto */
                                             disabled={isLoading || isListening}
                                         >
                                             傳送
                                         </button>
                                         <button
                                             onClick={requestHint}
-                                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex-shrink-0"
+                                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 w-full sm:w-auto flex-shrink-0" /* Added w-full sm:w-auto */
                                             disabled={isLoading || isListening}
                                         >
                                             提示
