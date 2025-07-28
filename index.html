@@ -218,11 +218,25 @@
                     if (result.candidates && result.candidates.length > 0 &&
                         result.candidates[0].content && result.candidates[0].content.parts &&
                         result.candidates[0].content.parts.length > 0) {
-                        const text = result.candidates[0].content.parts[0].text;
-                        setIsLoading(false); // Set loading state to false
-                        return schema ? JSON.parse(text) : text; // Parse JSON if schema was used
+                        const rawText = result.candidates[0].content.parts[0].text; // Get raw text
+                        console.log("Raw AI response text:", rawText); // Log raw text for debugging
+
+                        if (schema) {
+                            try {
+                                const parsedJson = JSON.parse(rawText);
+                                setIsLoading(false);
+                                return parsedJson;
+                            } catch (parseError) {
+                                console.error('Error parsing AI response JSON:', parseError, 'Raw text:', rawText);
+                                setIsLoading(false);
+                                return '錯誤：無法解析AI的回應。'; // More specific error
+                            }
+                        } else {
+                            setIsLoading(false);
+                            return rawText;
+                        }
                     } else {
-                        console.error('Unexpected API response structure:', result);
+                        console.error('Unexpected API response structure or empty content:', result);
                         setIsLoading(false);
                         return '錯誤：無法從AI獲得回應。'; // Translated error message
                     }
@@ -377,11 +391,11 @@
                 Conversation:\n${conversationText}\n\n
                 Please provide feedback on the user's choice of words, grammar, and overall usage.
                 Then, give a score from 0 to 100 based on their performance.
-                Structure your response as a JSON object with 'score' (number), 'recommendations' (string), 'vocabulary_suggestions' (array of objects), and 'grammar_corrections' (array of objects).
+                Your response MUST be a JSON object with 'score' (number), 'recommendations' (string), 'vocabulary_suggestions' (array of objects), and 'grammar_corrections' (array of objects).
                 For vocabulary_suggestions, each object should have 'word', 'meaning', and 'example'.
                 For grammar_corrections, each object should have 'rule', 'original_phrase', 'correction', and 'explanation'.
-                Example: {"score": 85, "recommendations": "Overall good!", "vocabulary_suggestions": [{"word": "flustered", "meaning": "agitated or confused", "example": "He became flustered under pressure."}], "grammar_corrections": [{"rule": "Subject-Verb Agreement", "original_phrase": "He go", "correction": "He goes", "explanation": "Third person singular subjects take -s/-es."}]}
-                Include relevant emojis in the score and recommendations to make them more engaging.`;
+                Do NOT include any other text or formatting outside the JSON object.
+                Example: {"score": 85, "recommendations": "Overall good!", "vocabulary_suggestions": [{"word": "flustered", "meaning": "agitated or confused", "example": "He became flustered under pressure."}], "grammar_corrections": [{"rule": "Subject-Verb Agreement", "original_phrase": "He go", "correction": "He goes", "explanation": "Third person singular subjects take -s/-es."}]}`;
 
                 const feedbackSchema = {
                     type: "OBJECT",
@@ -422,7 +436,7 @@
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center p-4 font-inter">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col md:flex-row overflow-hidden min-h-[80vh]"> {/* Added min-h for better responsiveness */}
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col md:flex-row overflow-hidden h-full max-h-[95vh]"> {/* Adjusted height properties */}
                         {/* Left Panel: Topic Selection or Back Button */}
                         <div className="w-full md:w-1/3 bg-blue-600 text-white p-6 flex flex-col justify-between rounded-t-xl md:rounded-l-xl md:rounded-tr-none">
                             {selectedTopic ? (
@@ -451,7 +465,7 @@
                         </div>
 
                         {/* Right Panel: Chat Area or Feedback */}
-                        <div className="w-full md:w-2/3 p-6 flex flex-col">
+                        <div className="w-full md:w-2/3 p-6 flex flex-col h-full"> {/* Ensure right panel also takes full height */}
                             {selectedTopic && !feedback ? (
                                 <>
                                     <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
@@ -495,7 +509,7 @@
                                         </div>
                                     )}
 
-                                    <div className="flex gap-2 items-center pr-6">
+                                    <div className="flex gap-2 items-center pr-6 flex-shrink-0"> {/* Added flex-shrink-0 */}
                                         <input
                                             type="text"
                                             value={userInput}
