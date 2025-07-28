@@ -66,7 +66,10 @@
             const topics = [
                 'Shopping', 'Airport', 'Restaurant', 'Hotel Check-in',
                 'Asking for Directions', 'Job Interview', 'Doctor\'s Appointment',
-                'Making Small Talk', 'Ordering Coffee', 'Discussing Hobbies'
+                'Making Small Talk', 'Ordering Coffee', 'Discussing Hobbies',
+                'Night Market', 'Bubble Tea Shop', 'Temple Visit', 'High-Speed Rail',
+                'Traditional Market', 'KTV', 'Hot Spring', 'Buying Fruit',
+                'Ordering at a Local Eatery', 'Asking for Directions in Jiufen'
             ];
 
             // Difficulty levels
@@ -272,6 +275,37 @@
                         break;
                     case 'Discussing Hobbies':
                         prompt = `You are meeting someone who shares a common interest. Start the conversation by asking about their hobbies, like "So, what do you like to do in your free time?" or "Any interesting hobbies you've picked up lately?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    // New Taiwanese Scenarios
+                    case 'Night Market':
+                        prompt = `You are a vendor at a bustling Taiwanese night market. Start by greeting the customer and asking what they're looking for, or recommending a popular dish. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    case 'Bubble Tea Shop':
+                        prompt = `You are a staff member at a popular bubble tea shop in Taiwan. Greet the customer and ask for their order, or suggest a popular drink. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    case 'Temple Visit':
+                        prompt = `You are a temple volunteer in Taiwan. Greet a visitor and offer assistance or explain a local custom. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    case 'High-Speed Rail':
+                        prompt = `You are a train attendant on Taiwan's High-Speed Rail (HSR). Greet a passenger and offer assistance with their luggage or direct them to their seat. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    case 'Traditional Market':
+                        prompt = `You are a vendor at a traditional Taiwanese market. Greet a customer and try to sell your fresh produce or goods. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    case 'KTV':
+                        prompt = `You are a KTV staff member in Taiwan. Greet a group of friends checking in and ask about their booking or offer them a room. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    case 'Hot Spring':
+                        prompt = `You are a staff member at a Taiwanese hot spring resort. Welcome a guest and explain the facilities or guide them to the changing rooms. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    case 'Buying Fruit':
+                        prompt = `You are a fruit vendor in Taiwan. Greet a customer and recommend some seasonal fruits or ask what they'd like to buy. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    case 'Ordering at a Local Eatery':
+                        prompt = `You are a server at a small, bustling Taiwanese eatery. Greet a customer and ask for their order, or recommend a local specialty. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        break;
+                    case 'Asking for Directions in Jiufen':
+                        prompt = `You are a local resident in Jiufen. A tourist approaches you for directions. Greet them and ask where they are trying to go. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     default:
                         prompt = `Start an engaging conversation about "${topic}". The AI should speak first with an inviting and natural opening line, setting a vivid scene for a conversation practice exercise. Keep the response concise but interesting, perhaps one or two sentences. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
