@@ -557,19 +557,19 @@
                             ) : feedback ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center overflow-y-auto"> {/* Added overflow-y-auto */}
                                     <h2 className="text-3xl font-bold text-gray-800 mb-4">對話結束！</h2>
-                                    <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg shadow-lg mb-6 w-full max-w-md text-left"> {/* Align feedback text left */}
-                                        <p className="text-xl font-bold mb-2">您的分數：<span className="text-green-800 text-4xl">{feedback.score}/100</span></p>
-                                        <p className="text-lg font-semibold mb-2">建議：</p>
-                                        <p className="text-md mb-4">{feedback.recommendations}</p>
+                                    <div className="bg-green-100 border border-green-400 text-green-700 p-4 rounded-lg shadow-lg mb-6 w-full text-left"> {/* Removed max-w-md, changed px-6 py-4 to p-4 */}
+                                        <p className="text-xl font-bold mb-2 text-wrap">您的分數：<span className="text-green-800 text-4xl">{feedback.score}/100</span></p>
+                                        <p className="text-lg font-semibold mb-2 text-wrap">建議：</p>
+                                        <p className="text-md mb-4 text-wrap">{feedback.recommendations}</p>
 
                                         {feedback.vocabulary_suggestions && feedback.vocabulary_suggestions.length > 0 && (
                                             <div className="mb-4">
-                                                <h3 className="text-lg font-bold text-gray-800 mb-2">詞彙建議：</h3>
+                                                <h3 className="text-lg font-bold text-gray-800 mb-2 text-wrap">詞彙建議：</h3>
                                                 {feedback.vocabulary_suggestions.map((item, idx) => (
                                                     <div key={`vocab-${idx}`} className="mb-2 p-2 bg-green-50 rounded-lg">
-                                                        <p><span className="font-semibold">詞語：</span> {item.word}</p>
-                                                        <p><span className="font-semibold">含義：</span> {item.meaning}</p>
-                                                        <p><span className="font-semibold">例句：</span> {item.example}</p>
+                                                        <p className="text-wrap"><span className="font-semibold">詞語：</span> {item.word}</p>
+                                                        <p className="text-wrap"><span className="font-semibold">含義：</span> {item.meaning}</p>
+                                                        <p className="text-wrap"><span className="font-semibold">例句：</span> {item.example}</p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -577,13 +577,13 @@
 
                                         {feedback.grammar_corrections && feedback.grammar_corrections.length > 0 && (
                                             <div>
-                                                <h3 className="text-lg font-bold text-gray-800 mb-2">語法更正：</h3>
+                                                <h3 className="text-lg font-bold text-gray-800 mb-2 text-wrap">語法更正：</h3>
                                                 {feedback.grammar_corrections.map((item, idx) => (
                                                     <div key={`grammar-${idx}`} className="mb-2 p-2 bg-green-50 rounded-lg">
-                                                        <p><span className="font-semibold">規則：</span> {item.rule}</p>
-                                                        <p><span className="font-semibold">原句：</span> <span className="line-through">{item.original_phrase}</span></p>
-                                                        <p><span className="font-semibold">更正：</span> {item.correction}</p>
-                                                        <p><span className="font-semibold">解釋：</span> {item.explanation}</p>
+                                                        <p className="text-wrap"><span className="font-semibold">規則：</span> {item.rule}</p>
+                                                        <p className="text-wrap"><span className="font-semibold">原句：</span> <span className="line-through">{item.original_phrase}</span></p>
+                                                        <p className="text-wrap"><span className="font-semibold">更正：</span> {item.correction}</p>
+                                                        <p className="text-wrap"><span className="font-semibold">解釋：</span> {item.explanation}</p>
                                                     </div>
                                                 ))}
                                             </div>
