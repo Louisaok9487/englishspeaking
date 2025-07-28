@@ -12,6 +12,15 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Custom pulsating animation for AI speaking */
+        @keyframes pulse-speak {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pulse-speak {
+            animation: pulse-speak 1s infinite ease-in-out;
+        }
     </style>
     <!-- React and ReactDOM CDNs -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -36,6 +45,10 @@
             const [hintText, setHintText] = React.useState(''); // Stores the hint text
             const [isListening, setIsListening] = React.useState(false); // Indicates if speech recognition is active
             const [speechError, setSpeechError] = React.useState(''); // Stores any speech recognition errors
+            const [isSpeakingAI, setIsSpeakingAI] = React.useState(false); // Indicates if AI is currently speaking
+            const [voices, setVoices] = React.useState([]); // Available text-to-speech voices
+            const [selectedVoice, setSelectedVoice] = React.useState(null); // Currently selected AI voice
+            const [difficulty, setDifficulty] = React.useState('Beginner'); // Conversation difficulty level
 
             const conversationEndRef = React.useRef(null); // Ref to scroll to the end of the conversation
             const recognitionRef = React.useRef(null); // Ref for SpeechRecognition object
@@ -47,6 +60,9 @@
                 'Making Small Talk', 'Ordering Coffee', 'Discussing Hobbies'
             ];
 
+            // Difficulty levels
+            const difficultyLevels = ['Beginner', 'Intermediate', 'Advanced'];
+
             // Effect to scroll to the bottom of the conversation whenever it updates
             React.useEffect(() => {
                 if (conversationEndRef.current) {
@@ -56,47 +72,101 @@
 
             // Initialize SpeechRecognition and SpeechSynthesis
             React.useEffect(() => {
-                // Check for Web Speech API compatibility
+                // Speech Recognition setup
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SpeechRecognition) {
                     recognitionRef.current = new SpeechRecognition();
                     recognitionRef.current.continuous = false; // Stop after a single utterance
                     recognitionRef.current.interimResults = false; // Only return final results
+                    recognitionRef.current.lang = 'en-US'; // Set recognition language to English (US) for better accuracy
 
                     recognitionRef.current.onresult = (event) => {
                         const transcript = event.results[0][0].transcript;
                         setUserInput(transcript); // Set transcribed text to input field
                         setIsListening(false); // Stop listening indicator
                         setSpeechError(''); // Clear any previous speech errors
+                        playBeep(false); // Play end recording beep
                     };
 
                     recognitionRef.current.onerror = (event) => {
                         console.error('Speech recognition error:', event.error);
                         setSpeechError(`語音辨識錯誤：${event.error}`); // Translated error message
                         setIsListening(false);
+                        playBeep(false); // Play end recording beep on error
                     };
 
                     recognitionRef.current.onend = () => {
                         setIsListening(false); // Ensure listening state is false when recognition ends
+                        playBeep(false); // Play end recording beep
                     };
                 } else {
                     setSpeechError('此瀏覽器不支援語音辨識。'); // Translated error message
                     console.warn('Web Speech API (SpeechRecognition) not supported in this browser.');
                 }
 
-                // Clean up recognition object on component unmount
+                // Speech Synthesis (Text-to-Speech) setup
+                const loadVoices = () => {
+                    const availableVoices = window.speechSynthesis.getVoices();
+                    setVoices(availableVoices.filter(voice => voice.lang.startsWith('en'))); // Filter for English voices
+                    // Try to find a British English voice by default
+                    const britishVoice = availableVoices.find(voice => voice.lang === 'en-GB');
+                    setSelectedVoice(britishVoice || availableVoices[0] || null); // Set default or first available
+                };
+
+                // Load voices immediately if they are already available
+                if (window.speechSynthesis.getVoices().length > 0) {
+                    loadVoices();
+                } else {
+                    // Otherwise, wait for voices to be loaded
+                    window.speechSynthesis.onvoiceschanged = loadVoices;
+                }
+
+                // Clean up recognition object and speech synthesis on component unmount
                 return () => {
                     if (recognitionRef.current) {
                         recognitionRef.current.stop();
                     }
+                    window.speechSynthesis.cancel(); // Stop any ongoing speech
                 };
             }, []);
+
+            // Function to play a simple beep sound
+            const playBeep = (isStart) => {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(isStart ? 600 : 400, audioContext.currentTime); // Different freq for start/end
+                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Volume
+
+                    oscillator.start();
+                    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.2); // Fade out
+                    oscillator.stop(audioContext.currentTime + 0.2); // Stop after 0.2 seconds
+                } catch (e) {
+                    console.warn("Could not play beep sound:", e);
+                }
+            };
 
             // Function to speak text using SpeechSynthesis
             const speakText = (text) => {
                 if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel(); // Stop any previous speech
                     const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = 'en-GB'; // Use British English accent
+                    utterance.lang = selectedVoice ? selectedVoice.lang : 'en-GB'; // Use selected voice lang
+                    utterance.voice = selectedVoice; // Set selected voice
+
+                    utterance.onstart = () => setIsSpeakingAI(true);
+                    utterance.onend = () => setIsSpeakingAI(false);
+                    utterance.onerror = (event) => {
+                        console.error('Speech synthesis error:', event);
+                        setIsSpeakingAI(false);
+                    };
+
                     window.speechSynthesis.speak(utterance);
                 } else {
                     console.warn('Text-to-speech not supported in this browser.');
@@ -165,37 +235,37 @@
                 let prompt;
                 switch (topic) {
                     case 'Restaurant':
-                        prompt = `You are a server in a restaurant. Start the conversation by asking a direct question to the customer, like "What can I get for you today, sir/madam?" or "Are you ready to order?"`;
+                        prompt = `You are a server in a restaurant. Start the conversation by asking a direct question to the customer, like "What can I get for you today, sir/madam?" or "Are you ready to order?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Airport':
-                        prompt = `You are an airport check-in agent. Start the conversation by asking a direct question about the passenger's flight, like "What is your flight today?" or "Do you have your passport and ticket ready?"`;
+                        prompt = `You are an airport check-in agent. Start the conversation by asking a direct question about the passenger's flight, like "What is your flight today?" or "Do you have your passport and ticket ready?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Shopping':
-                        prompt = `You are a shop assistant. Start the conversation by asking a direct question to the customer, like "Can I help you find anything today?" or "Are you looking for something specific?"`;
+                        prompt = `You are a shop assistant. Start the conversation by asking a direct question to the customer, like "Can I help you find anything today?" or "Are you looking for something specific?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Hotel Check-in':
-                        prompt = `You are a hotel receptionist. Start the conversation by asking a direct question for check-in, like "Welcome to our hotel. Do you have a reservation?" or "May I have your name, please?"`;
+                        prompt = `You are a hotel receptionist. Start the conversation by asking a direct question for check-in, like "Welcome to our hotel. Do you have a reservation?" or "May I have your name, please?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Asking for Directions':
-                        prompt = `You are a person being asked for directions. Start the conversation by acknowledging the user's need, like "Hello, can I help you find something?" or "Are you lost?"`;
+                        prompt = `You are a person being asked for directions. Start the conversation by acknowledging the user's need, like "Hello, can I help you find something?" or "Are you lost?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Job Interview':
-                        prompt = `You are an interviewer. Start the conversation with a common opening interview question, like "Tell me a little bit about yourself." or "Why are you interested in this position?"`;
+                        prompt = `You are an interviewer. Start the conversation with a common opening interview question, like "Tell me a little bit about yourself." or "Why are you interested in this position?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Doctor\'s Appointment':
-                        prompt = `You are a doctor or a nurse. Start the conversation by asking about the patient's reason for visit, like "What brings you in today?" or "How are you feeling?"`;
+                        prompt = `You are a doctor or a nurse. Start the conversation by asking about the patient's reason for visit, like "What brings you in today?" or "How are you feeling?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Making Small Talk':
-                        prompt = `You are meeting someone new. Start the conversation with a casual, open-ended question for small talk, like "How's your day going so far?" or "Lovely weather, isn't it?"`;
+                        prompt = `You are meeting someone new. Start the conversation with a casual, open-ended question for small talk, like "How's your day going so far?" or "Lovely weather, isn't it?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Ordering Coffee':
-                        prompt = `You are a barista. Start the conversation by asking what the customer would like to order, like "What can I get for you?" or "Ready to order?"`;
+                        prompt = `You are a barista. Start the conversation by asking what the customer would like to order, like "What can I get for you?" or "Ready to order?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Discussing Hobbies':
-                        prompt = `You are meeting someone who shares a common interest. Start the conversation by asking about their hobbies, like "So, what do you like to do in your free time?" or "Any interesting hobbies you've picked up lately?"`;
+                        prompt = `You are meeting someone who shares a common interest. Start the conversation by asking about their hobbies, like "So, what do you like to do in your free time?" or "Any interesting hobbies you've picked up lately?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     default:
-                        prompt = `Start an engaging conversation about "${topic}". The AI should speak first with an inviting and natural opening line, setting a vivid scene for a conversation practice exercise. Keep the response concise but interesting, perhaps one or two sentences.`;
+                        prompt = `Start an engaging conversation about "${topic}". The AI should speak first with an inviting and natural opening line, setting a vivid scene for a conversation practice exercise. Keep the response concise but interesting, perhaps one or two sentences. Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                 }
 
                 const aiResponse = await callGeminiAPI(prompt);
@@ -220,7 +290,7 @@
                     await getConversationFeedback(updatedConversation);
                 } else {
                     // Get AI's response for the next turn, keeping it engaging but concise
-                    const aiPrompt = `Given the conversation history: ${updatedConversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nUser just said: "${userInput}". What should the AI say next to continue the conversation naturally and engagingly? Keep the response concise, perhaps one or two sentences with a follow-up question.`;
+                    const aiPrompt = `Given the conversation history: ${updatedConversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nUser just said: "${userInput}". What should the AI say next to continue the conversation naturally and engagingly? Keep the response concise, perhaps one or two sentences with a follow-up question. Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                     const aiResponse = await callGeminiAPI(aiPrompt);
                     setConversation(prev => {
                         const newConv = [...prev, { sender: 'AI', text: aiResponse }];
@@ -234,7 +304,7 @@
             // Function to request a hint from the AI
             const requestHint = async () => {
                 if (isLoading) return;
-                const prompt = `Given the current conversation: ${conversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nI need a hint for what to say next as the user. Provide a very short, concise suggestion or question I could ask.`;
+                const prompt = `Given the current conversation: ${conversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nI need a hint for what to say next as the user. Provide a very short, concise suggestion or question I could ask. Include appropriate emojis. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                 const hint = await callGeminiAPI(prompt);
                 setHintText(hint);
                 setShowHint(true);
@@ -250,6 +320,7 @@
                     setSpeechError(''); // Clear previous errors
                     recognitionRef.current.stop(); // Stop any previous recognition before starting a new one
                     setIsListening(true);
+                    playBeep(true); // Play start recording beep
                     recognitionRef.current.start();
                 } else {
                     setSpeechError('語音辨識不可用。'); // Translated error message
@@ -264,7 +335,8 @@
                 Please provide feedback on the user's choice of words, grammar, and overall usage.
                 Then, give a score from 0 to 100 based on their performance.
                 Structure your response as a JSON object with 'score' (number) and 'recommendations' (string) fields.
-                Example: {"score": 85, "recommendations": "Good vocabulary, but work on verb tenses. Try to use more varied sentence structures."}`;
+                Include relevant emojis in the score and recommendations to make them more engaging.
+                Example: {"score": 85, "recommendations": "Good vocabulary, but work on verb tenses. Try to use more varied sentence structures. 👍"}`;
 
                 const feedbackSchema = {
                     type: "OBJECT",
@@ -323,7 +395,12 @@
                                                 key={index}
                                                 className={`mb-3 p-3 rounded-lg max-w-[80%] ${msg.sender === 'User' ? 'bg-blue-100 text-blue-800 ml-auto' : 'bg-gray-200 text-gray-800 mr-auto'}`}
                                             >
-                                                <p className="font-semibold">{msg.sender === 'AI' ? 'AI' : '使用者'}:</p> {/* Keep sender name in English */}
+                                                <div className="flex items-center mb-1">
+                                                    {msg.sender === 'AI' && (
+                                                        <span className={`mr-2 text-2xl ${isSpeakingAI && index === conversation.length -1 ? 'animate-pulse-speak' : ''}`}>🤖</span>
+                                                    )}
+                                                    <p className="font-semibold">{msg.sender === 'AI' ? 'AI' : '使用者'}:</p>
+                                                </div>
                                                 <p>{msg.text}</p>
                                             </div>
                                         ))}
@@ -350,7 +427,7 @@
                                         </div>
                                     )}
 
-                                    <div className="flex gap-2 items-center">
+                                    <div className="flex gap-2 items-center pr-6">
                                         <input
                                             type="text"
                                             value={userInput}
@@ -413,7 +490,20 @@
                                 <div className="flex flex-col items-center justify-center h-full text-center">
                                     <h1 className="text-4xl font-extrabold text-gray-800 mb-4">歡迎來到AI聊天練習！</h1>
                                     <p className="text-lg text-gray-600 mb-8">請從左側面板選擇一個主題，開始與AI對話。</p>
-                                    <p className="text-md text-gray-500">練習您的英語，獲得提示，並接收關於您語言技能的回饋。</p>
+                                    {/* Difficulty Level Selector moved here */}
+                                    <div className="flex items-center justify-center gap-2 mb-8">
+                                        <label htmlFor="difficulty-select" className="text-gray-700 font-semibold">難度等級：</label>
+                                        <select
+                                            id="difficulty-select"
+                                            value={difficulty}
+                                            onChange={(e) => setDifficulty(e.target.value)}
+                                            className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            {difficultyLevels.map(level => (
+                                                <option key={level} value={level}>{level === 'Beginner' ? '初級' : level === 'Intermediate' ? '中級' : '高級'}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                             )}
                         </div>
