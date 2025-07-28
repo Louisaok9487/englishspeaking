@@ -235,37 +235,37 @@
                 let prompt;
                 switch (topic) {
                     case 'Restaurant':
-                        prompt = `You are a server in a restaurant. Start the conversation by asking a direct question to the customer, like "What can I get for you today, sir/madam?" or "Are you ready to order?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are a server in a restaurant. Start the conversation by asking a direct question to the customer, like "What can I get for you today, sir/madam?" or "Are you ready to order?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Airport':
-                        prompt = `You are an airport check-in agent. Start the conversation by asking a direct question about the passenger's flight, like "What is your flight today?" or "Do you have your passport and ticket ready?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are an airport check-in agent. Start the conversation by asking a direct question about the passenger's flight, like "What is your flight today?" or "Do you have your passport and ticket ready?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Shopping':
-                        prompt = `You are a shop assistant. Start the conversation by asking a direct question to the customer, like "Can I help you find anything today?" or "Are you looking for something specific?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are a shop assistant. Start the conversation by asking a direct question to the customer, like "Can I help you find anything today?" or "Are you looking for something specific?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Hotel Check-in':
-                        prompt = `You are a hotel receptionist. Start the conversation by asking a direct question for check-in, like "Welcome to our hotel. Do you have a reservation?" or "May I have your name, please?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are a hotel receptionist. Start the conversation by asking a direct question for check-in, like "Welcome to our hotel. Do you have a reservation?" or "May I have your name, please?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Asking for Directions':
-                        prompt = `You are a person being asked for directions. Start the conversation by acknowledging the user's need, like "Hello, can I help you find something?" or "Are you lost?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are a person being asked for directions. Start the conversation by acknowledging the user's need, like "Hello, can I help you find something?" or "Are you lost?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Job Interview':
-                        prompt = `You are an interviewer. Start the conversation with a common opening interview question, like "Tell me a little bit about yourself." or "Why are you interested in this position?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are an interviewer. Start the conversation with a common opening interview question, like "Tell me a little bit about yourself." or "Why are you interested in this position?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Doctor\'s Appointment':
-                        prompt = `You are a doctor or a nurse. Start the conversation by asking about the patient's reason for visit, like "What brings you in today?" or "How are you feeling?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are a doctor or a nurse. Start the conversation by asking about the patient's reason for visit, like "What brings you in today?" or "How are you feeling?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Making Small Talk':
-                        prompt = `You are meeting someone new. Start the conversation with a casual, open-ended question for small talk, like "How's your day going so far?" or "Lovely weather, isn't it?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are meeting someone new. Start the conversation with a casual, open-ended question for small talk, like "How's your day going so far?" or "Lovely weather, isn't it?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Ordering Coffee':
-                        prompt = `You are a barista. Start the conversation by asking what the customer would like to order, like "What can I get for you?" or "Ready to order?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are a barista. Start the conversation by asking what the customer would like to order, like "What can I get for you?" or "Ready to order?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     case 'Discussing Hobbies':
-                        prompt = `You are meeting someone who shares a common interest. Start the conversation by asking about their hobbies, like "So, what do you like to do in your free time?" or "Any interesting hobbies you've picked up lately?". Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `You are meeting someone who shares a common interest. Start the conversation by asking about their hobbies, like "So, what do you like to do in your free time?" or "Any interesting hobbies you've picked up lately?". Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                         break;
                     default:
-                        prompt = `Start an engaging conversation about "${topic}". The AI should speak first with an inviting and natural opening line, setting a vivid scene for a conversation practice exercise. Keep the response concise but interesting, perhaps one or two sentences. Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                        prompt = `Start an engaging conversation about "${topic}". The AI should speak first with an inviting and natural opening line, setting a vivid scene for a conversation practice exercise. Keep the response concise but interesting, perhaps one or two sentences. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                 }
 
                 const aiResponse = await callGeminiAPI(prompt);
@@ -290,7 +290,7 @@
                     await getConversationFeedback(updatedConversation);
                 } else {
                     // Get AI's response for the next turn, keeping it engaging but concise
-                    const aiPrompt = `Given the conversation history: ${updatedConversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nUser just said: "${userInput}". What should the AI say next to continue the conversation naturally and engagingly? Keep the response concise, perhaps one or two sentences with a follow-up question. Include appropriate emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                    const aiPrompt = `Given the conversation history: ${updatedConversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nUser just said: "${userInput}". What should the AI say next to continue the conversation naturally and engagingly? Keep the response concise, perhaps one or two sentences with a follow-up question. Do NOT include emojis in your response. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                     const aiResponse = await callGeminiAPI(aiPrompt);
                     setConversation(prev => {
                         const newConv = [...prev, { sender: 'AI', text: aiResponse }];
@@ -304,7 +304,7 @@
             // Function to request a hint from the AI
             const requestHint = async () => {
                 if (isLoading) return;
-                const prompt = `Given the current conversation: ${conversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nI need a hint for what to say next as the user. Provide a very short, concise suggestion or question I could ask. Include appropriate emojis. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
+                const prompt = `Given the current conversation: ${conversation.map(m => `${m.sender}: ${m.text}`).join('\n')}\n\nI need a hint for what to say next as the user. Provide a very short, concise suggestion or question I could ask. Do NOT include emojis. Adjust vocabulary and sentence structure for a ${difficulty} level.`;
                 const hint = await callGeminiAPI(prompt);
                 setHintText(hint);
                 setShowHint(true);
