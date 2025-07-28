@@ -21,6 +21,15 @@
         .animate-pulse-speak {
             animation: pulse-speak 1s infinite ease-in-out;
         }
+        /* Enhanced pulsating for listening button */
+        @keyframes pulse-listen {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252, 165, 165, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(252, 165, 165, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252, 165, 165, 0); }
+        }
+        .animate-pulse-listen {
+            animation: pulse-listen 1.5s infinite;
+        }
     </style>
     <!-- React and ReactDOM CDNs -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -334,17 +343,42 @@
                 Conversation:\n${conversationText}\n\n
                 Please provide feedback on the user's choice of words, grammar, and overall usage.
                 Then, give a score from 0 to 100 based on their performance.
-                Structure your response as a JSON object with 'score' (number) and 'recommendations' (string) fields.
-                Include relevant emojis in the score and recommendations to make them more engaging.
-                Example: {"score": 85, "recommendations": "Good vocabulary, but work on verb tenses. Try to use more varied sentence structures. 👍"}`;
+                Structure your response as a JSON object with 'score' (number), 'recommendations' (string), 'vocabulary_suggestions' (array of objects), and 'grammar_corrections' (array of objects).
+                For vocabulary_suggestions, each object should have 'word', 'meaning', and 'example'.
+                For grammar_corrections, each object should have 'rule', 'original_phrase', 'correction', and 'explanation'.
+                Example: {"score": 85, "recommendations": "Overall good!", "vocabulary_suggestions": [{"word": "flustered", "meaning": "agitated or confused", "example": "He became flustered under pressure."}], "grammar_corrections": [{"rule": "Subject-Verb Agreement", "original_phrase": "He go", "correction": "He goes", "explanation": "Third person singular subjects take -s/-es."}]}
+                Include relevant emojis in the score and recommendations to make them more engaging.`;
 
                 const feedbackSchema = {
                     type: "OBJECT",
                     properties: {
                         "score": { "type": "NUMBER" },
-                        "recommendations": { "type": "STRING" }
+                        "recommendations": { "type": "STRING" },
+                        "vocabulary_suggestions": {
+                            "type": "ARRAY",
+                            "items": {
+                                "type": "OBJECT",
+                                "properties": {
+                                    "word": { "type": "STRING" },
+                                    "meaning": { "type": "STRING" },
+                                    "example": { "type": "STRING" }
+                                }
+                            }
+                        },
+                        "grammar_corrections": {
+                            "type": "ARRAY",
+                            "items": {
+                                "type": "OBJECT",
+                                "properties": {
+                                    "rule": { "type": "STRING" },
+                                    "original_phrase": { "type": "STRING" },
+                                    "correction": { "type": "STRING" },
+                                    "explanation": { "type": "STRING" }
+                                }
+                            }
+                        }
                     },
-                    propertyOrdering: ["score", "recommendations"]
+                    propertyOrdering: ["score", "recommendations", "vocabulary_suggestions", "grammar_corrections"]
                 };
 
                 const aiFeedback = await callGeminiAPI(feedbackPrompt, feedbackSchema);
@@ -354,7 +388,7 @@
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center p-4 font-inter">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col md:flex-row overflow-hidden">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col md:flex-row overflow-hidden min-h-[80vh]"> {/* Added min-h for better responsiveness */}
                         {/* Left Panel: Topic Selection or Back Button */}
                         <div className="w-full md:w-1/3 bg-blue-600 text-white p-6 flex flex-col justify-between rounded-t-xl md:rounded-l-xl md:rounded-tr-none">
                             {selectedTopic ? (
@@ -439,7 +473,7 @@
                                         />
                                         <button
                                             onClick={startListening}
-                                            className={`py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-green-600 hover:bg-green-700 text-white'} min-w-[100px]`}
+                                            className={`py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center ${isListening ? 'bg-red-500 text-white animate-pulse-listen' : 'bg-green-600 hover:bg-green-700 text-white'} min-w-[100px]`}
                                             disabled={isLoading || !recognitionRef.current}
                                             title={isListening ? "正在聆聽..." : "說出您的訊息"}
                                         >
@@ -469,10 +503,37 @@
                             ) : feedback ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center">
                                     <h2 className="text-3xl font-bold text-gray-800 mb-4">對話結束！</h2>
-                                    <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg shadow-lg mb-6 w-full max-w-md">
+                                    <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg shadow-lg mb-6 w-full max-w-md text-left"> {/* Align feedback text left */}
                                         <p className="text-xl font-bold mb-2">您的分數：<span className="text-green-800 text-4xl">{feedback.score}/100</span></p>
                                         <p className="text-lg font-semibold mb-2">建議：</p>
-                                        <p className="text-md">{feedback.recommendations}</p>
+                                        <p className="text-md mb-4">{feedback.recommendations}</p>
+
+                                        {feedback.vocabulary_suggestions && feedback.vocabulary_suggestions.length > 0 && (
+                                            <div className="mb-4">
+                                                <h3 className="text-lg font-bold text-gray-800 mb-2">詞彙建議：</h3>
+                                                {feedback.vocabulary_suggestions.map((item, idx) => (
+                                                    <div key={`vocab-${idx}`} className="mb-2 p-2 bg-green-50 rounded-lg">
+                                                        <p><span className="font-semibold">詞語：</span> {item.word}</p>
+                                                        <p><span className="font-semibold">含義：</span> {item.meaning}</p>
+                                                        <p><span className="font-semibold">例句：</span> {item.example}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {feedback.grammar_corrections && feedback.grammar_corrections.length > 0 && (
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-800 mb-2">語法更正：</h3>
+                                                {feedback.grammar_corrections.map((item, idx) => (
+                                                    <div key={`grammar-${idx}`} className="mb-2 p-2 bg-green-50 rounded-lg">
+                                                        <p><span className="font-semibold">規則：</span> {item.rule}</p>
+                                                        <p><span className="font-semibold">原句：</span> <span className="line-through">{item.original_phrase}</span></p>
+                                                        <p><span className="font-semibold">更正：</span> {item.correction}</p>
+                                                        <p><span className="font-semibold">解釋：</span> {item.explanation}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <button
                                         onClick={() => {
@@ -490,8 +551,9 @@
                                 <div className="flex flex-col items-center justify-center h-full text-center">
                                     <h1 className="text-4xl font-extrabold text-gray-800 mb-4">歡迎來到AI聊天練習！</h1>
                                     <p className="text-lg text-gray-600 mb-8">請從左側面板選擇一個主題，開始與AI對話。</p>
+                                    
                                     {/* Difficulty Level Selector moved here */}
-                                    <div className="flex items-center justify-center gap-2 mb-8">
+                                    <div className="flex items-center justify-center gap-2 mb-4">
                                         <label htmlFor="difficulty-select" className="text-gray-700 font-semibold">難度等級：</label>
                                         <select
                                             id="difficulty-select"
@@ -502,6 +564,27 @@
                                             {difficultyLevels.map(level => (
                                                 <option key={level} value={level}>{level === 'Beginner' ? '初級' : level === 'Intermediate' ? '中級' : '高級'}</option>
                                             ))}
+                                        </select>
+                                    </div>
+
+                                    {/* AI Voice Selector moved here */}
+                                    <div className="flex items-center justify-center gap-2 mb-8">
+                                        <label htmlFor="voice-select" className="text-gray-700 font-semibold">AI 語音：</label>
+                                        <select
+                                            id="voice-select"
+                                            value={selectedVoice ? selectedVoice.name : ''}
+                                            onChange={(e) => setSelectedVoice(voices.find(v => v.name === e.target.value))}
+                                            className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+                                        >
+                                            {voices.length > 0 ? (
+                                                voices.map(voice => (
+                                                    <option key={voice.name} value={voice.name}>
+                                                        {voice.name} ({voice.lang})
+                                                    </option>
+                                                ))
+                                            ) : (
+                                                <option value="">載入語音中...</option>
+                                            )}
                                         </select>
                                     </div>
                                 </div>
